@@ -1,3 +1,22 @@
+provider "aws" {
+  region = "us-west-2" # Make this configurable as needed
+}
+
+data "aws_ami" "ubuntu" {
+  most_recent = true
+  owners      = ["099720109477"] # Canonical's owner ID
+
+  filter {
+    name   = "name"
+    values = ["ubuntu/images/hvm-ssd/ubuntu-jammy-22.04-amd64-server-*"]
+  }
+
+  filter {
+    name   = "virtualization-type"
+    values = ["hvm"]
+  }
+}
+
 resource "aws_route53_zone" "default" {
   name            = "${var.env}.${var.dns_zone_parent}"
 }
@@ -29,7 +48,7 @@ module "validator" {
   vpc_id                    = aws_vpc.vpc.id
   igw_id                    = aws_internet_gateway.igw.id
   subnet_cidr               = var.validator_subnet_cidr
-  ami                       = "ami-0ee8244746ec5d6d4" # See https://us-west-2.console.aws.amazon.com/ec2/v2/home?region=us-west-2#AMICatalog: - alternate: ami = data.aws_ami.latest-ubuntu.id
+  ami                       = data.aws_ami.ubuntu.id
   dns_zone_id               = aws_route53_zone.default.zone_id
   dns_zone_name             = aws_route53_zone.default.name
   num_instances             = var.num_validator_instances
@@ -50,7 +69,7 @@ module "seed" {
   subnet_cidr            = var.seed_subnet_cidr
   validator_ips          = module.validator.ips
   genesis_file_available = module.validator.genesis_file_available
-  ami                    = "ami-0ee8244746ec5d6d4" # See https://us-west-2.console.aws.amazon.com/ec2/v2/home?region=us-west-2#AMICatalog: - alternate: ami = data.aws_ami.latest-ubuntu.id
+  ami                    = data.aws_ami.ubuntu.id
   dns_zone_id            = aws_route53_zone.default.zone_id
   dns_zone_name          = aws_route53_zone.default.name
   num_instances          = var.num_seed_instances
@@ -67,7 +86,7 @@ module "explorer" {
   vpc_id                = aws_vpc.vpc.id
   igw_id                = aws_internet_gateway.igw.id
   subnet_cidr           = var.explorer_subnet_cidr
-  ami                   = "ami-0ee8244746ec5d6d4" # See https://us-west-2.console.aws.amazon.com/ec2/v2/home?region=us-west-2#AMICatalog: - alternate: ami = data.aws_ami.latest-ubuntu.id
+  ami                   = data.aws_ami.ubuntu.id
   create_explorer       = var.create_explorer
   dns_zone_id           = aws_route53_zone.default.zone_id
   dns_zone_name         = aws_route53_zone.default.name

@@ -1,7 +1,11 @@
+variable "availability_zone" {
+  description = "Availability zone for the seed subnet"
+}
+
 resource "aws_subnet" "seed" {
   vpc_id            = var.vpc_id
   cidr_block        = var.subnet_cidr
-  availability_zone = "us-west-2a"
+  availability_zone = var.availability_zone
 
   tags = {
     Environment = var.env
@@ -12,6 +16,7 @@ resource "aws_subnet" "seed" {
 
 resource "aws_route_table" "seed" {
   vpc_id = var.vpc_id
+
   route {
     cidr_block = "0.0.0.0/0"
     gateway_id = var.igw_id
@@ -31,7 +36,7 @@ resource "aws_route_table_association" "seed" {
 
 resource "aws_security_group" "seed" {
   name        = "${var.env}-seed-sg"
-  description = "SG to alllow traffic from the seed clients"
+  description = "Security group for the seed node"
   vpc_id      = var.vpc_id
 
   egress {
@@ -43,8 +48,8 @@ resource "aws_security_group" "seed" {
   }
 
   ingress {
-    from_port   = 22
-    to_port     = 22
+    from_port   = 443
+    to_port     = 443
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -57,24 +62,17 @@ resource "aws_security_group" "seed" {
   }
 
   ingress {
-    from_port   = 443
-    to_port     = 443
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
     from_port   = 26656
     to_port     = 26656
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = ["10.0.0.0/16"] # Restrict to VPC CIDR
   }
 
   ingress {
     from_port   = 26657
     to_port     = 26657
     protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
+    cidr_blocks = ["10.0.0.0/16"] # Restrict to VPC CIDR
   }
 
   tags = {

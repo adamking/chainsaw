@@ -1,65 +1,123 @@
 # newchain
 
-**newchain** is a blockchain built using Cosmos SDK and Tendermint. It was created with [chainsaw](https://github.com/johnreitano/chainsaw)
+**newchain** is a blockchain built using Cosmos SDK and Tendermint. It was created with [chainsaw](https://github.com/github_username/chainsaw)
 and the [Ignite/Tendermint Toolchain](https://ignite.com/cli).
 
-## Deploying a testnet
+## Getting Started
 
-See [Deploying a testnet](./deploy/README.md).
+### Local Development
 
-## Learn More
-
-Questions? Please send them to [me](https://github.com/johnreitano).
-
-<!-- ## Get started
-
-```
+```bash
+# Install dependencies and start the blockchain
 ignite chain serve
+
+# Build the application
+make build
+
+# Run tests
+make test
 ```
 
-`serve` command installs dependencies, builds, initializes, and starts your blockchain in development.
+### Configuration
 
-### Configure
+Your blockchain can be configured through several files:
+- `config.yml`: Main chain configuration
+- `app/app.go`: Application initialization and module setup
+- `x/`: Custom modules directory
+- `proto/`: Protocol buffer definitions
 
-Your blockchain in development can be configured with `config.yml`. To learn more, see the [Ignite CLI docs](https://docs.ignite.com).
+## Features
 
-### Web Frontend
+- Built on Cosmos SDK for robust blockchain functionality
+- Tendermint consensus for fast finality
+- Modular architecture for extensibility
+- IBC (Inter-Blockchain Communication) ready
+- Configurable tokenomics
+- Built-in governance module
+- Customizable staking parameters
 
-Ignite CLI has scaffolded a Vue.js-based web app in the `vue` directory. Run the following commands to install dependencies and start the app:
+## Deployment
 
+### Testnet Deployment
+
+See [Deploying a testnet](./deploy/README.md) for detailed instructions on:
+- Setting up validator nodes
+- Configuring seed nodes
+- Managing the block explorer
+- Monitoring and maintenance
+
+### Infrastructure Components
+
+The deployment includes:
+- Validator nodes for consensus
+- Seed nodes for P2P networking
+- Block explorer for chain monitoring
+- Load balancers for API distribution
+- Automated DNS configuration
+- Security group management
+
+## Development
+
+### Module Development
+
+Custom modules can be added using Ignite CLI:
+```bash
+ignite scaffold module my-module
 ```
-cd vue
-npm install
-npm run serve
+
+### Message Types
+
+Create new message types:
+```bash
+ignite scaffold message create-post title body
 ```
 
-The frontend app is built using the `@starport/vue` and `@starport/vuex` packages. For details, see the [monorepo for Ignite front-end development](https://github.com/ignite-hq/web).
+### API Development
 
-## Release
+- REST API endpoints are auto-generated
+- gRPC endpoints available for efficient communication
+- Swagger/OpenAPI documentation included
 
-To release a new version of your blockchain, create and push a new tag with `v` prefix. A new draft release with the configured targets will be created.
+## Testing
 
-```
-git tag v0.1
-git push origin v0.1
-```
+```bash
+# Run all tests
+make test
 
-After a draft release is created, make your final changes from the release page and publish it.
+# Run specific tests
+go test ./x/newchain/...
 
-### Install
-
-To install the latest version of your blockchain node's binary, execute the following command on your machine:
-
-```
-curl https://get.ignite.com/johnreitano/foo@latest! | sudo bash
+# Run with coverage
+go test -cover ./...
 ```
 
-`johnreitano/foo` should match the `username` and `repo_name` of the Github repository to which the source code was pushed. Learn more about [the install process](https://github.com/allinbits/starport-installer).
+## Security
 
-## Learn more
+- Keep private keys secure and backed up
+- Use separate keys for validators and accounts
+- Enable firewall rules in production
+- Regularly update dependencies
+- Monitor chain health and performance
 
-- [Ignite CLI](https://ignite.com/cli)
-- [Tutorials](https://docs.ignite.com/guide)
-- [Ignite CLI docs](https://docs.ignite.com)
-- [Cosmos SDK docs](https://docs.cosmos.network)
-- [Developer Chat](https://discord.gg/ignite) -->
+## Contributing
+
+1. Fork the repository
+2. Create your feature branch
+3. Commit your changes
+4. Push to the branch
+5. Create a new Pull Request
+
+## Resources
+
+- [Cosmos SDK Documentation](https://docs.cosmos.network)
+- [Tendermint Core](https://docs.tendermint.com)
+- [Ignite CLI](https://docs.ignite.com)
+- [IBC Protocol](https://ibcprotocol.org)
+
+## Support
+
+Questions? Please send them to [me](https://github.com/github_username).
+
+## License
+
+This project is open source. See LICENSE file for details.

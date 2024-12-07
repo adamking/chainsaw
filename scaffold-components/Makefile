@@ -18,13 +18,13 @@ VERSION := $(shell echo $(shell git describe --tags) | sed 's/^v//')
 COMMIT := $(shell git log -1 --format='%H')
 PACKAGES=$(shell go list ./... | grep -Ev 'vendor|importer|rpc/tester')
 DOCKER_TAG = unstable
-DOCKER_IMAGE = johnreitano/newchain
+DOCKER_IMAGE = github_username/newchain
 DAEMON_BINARY = newchaind
 GO_MOD=GO111MODULE=on
 BUILDDIR ?= $(CURDIR)/build
 SIMAPP = ./app
 # LEDGER_ENABLED ?= true
-HTTPS_GIT := https://github.com/johnreitano/newchain.git
+HTTPS_GIT := https://github.com/github_username/newchain.git
 DOCKER := $(shell which docker)
 DOCKER_BUF := $(DOCKER) run --rm -v $(CURDIR):/workspace --workdir /workspace bufbuild/buf
 
@@ -156,7 +156,7 @@ docker-build:
 	# update old container
 	docker rm newchain || true
 	# create a new container from the latest image
-	docker create --name newchain -t -i johnreitano/newchain:latest newchain
+	docker create --name newchain -t -i github_username/newchain:latest newchain
 	# move the binaries to the ./build directory
 	mkdir -p ./build/
 	docker cp newchain:/usr/bin/newchaind ./build/
@@ -329,10 +329,9 @@ format:
 	find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" -not -name '*.pb.go' | xargs goimports -w -local github.com/tendermint
 	find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" -not -name '*.pb.go' | xargs goimports -w -local github.com/ethereum/go-ethereum
 	find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" -not -name '*.pb.go' | xargs goimports -w -local github.com/cosmos/cosmos-sdk
-	find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" -not -name '*.pb.go' | xargs goimports -w -local github.com/johnreitano/newchain
+	find . -name '*.go' -type f -not -path "./vendor*" -not -path "*.git*" -not -name '*.pb.go' | xargs goimports -w -local github.com/github_username/newchain
 
 .PHONY: lint format
-
 ###############################################################################
 ###                                Protobuf                                 ###
 ###############################################################################
@@ -414,7 +413,7 @@ docs-build:
 	yarn run build
 
 godocs:
-	@echo "--> Wait a few seconds and visit http://localhost:6060/pkg/github.com/johnreitano/newchain"
+	@echo "--> Wait a few seconds and visit http://localhost:6060/pkg/github.com/github_username/newchain"
 	godoc -http=:6060
 
 ###############################################################################
@@ -464,3 +463,4 @@ else
 endif
 
 .PHONY: build-docker-local-newchain localnet-start localnet-stop
+

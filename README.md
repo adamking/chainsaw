@@ -1,103 +1,272 @@
-# chainsaw: generate a new cosmos-sdk-based blockchain and deploy it to a testnet on AWS
+# Chainsaw 🪚
 
-## Install dependencies
+A powerful tool to generate and deploy Cosmos SDK-based blockchains to AWS testnets.
 
-1. Install docker desktop: https://docs.docker.com/get-docker/
+## Overview
 
-2. Install build tools: `brew install jq terraform awscli ignite`
+Chainsaw automates the process of:
+1. Generating a new Cosmos SDK blockchain using Ignite CLI
+2. Setting up deployment infrastructure using Terraform
+3. Deploying a complete testnet to AWS with validators, seed nodes, and a block explorer
 
-3. Install the go version used by ignite (currently v1.22.2).
-3. If not yet configured, configure aws: `aws configure` with credentials authorized to create AWS resources for EC2 and Route 53.
+## Prerequisites
 
-## Generate and deploy a chain
+### Required Software
+- [Docker Desktop](https://docs.docker.com/get-docker/)
+- [Homebrew](https://brew.sh/) (for macOS users)
+- Command line tools:
+  ```bash
+  brew install jq terraform awscli ignite
+  ```
+- Go v1.21.4 (required by Ignite)
+- AWS CLI configured with appropriate credentials:
+  ```bash
+  aws configure
+  ```
 
-#### Step 1: Generate chain
+### AWS Permissions
+Your AWS credentials must have permissions to:
+- Create and manage EC2 instances
+- Manage Route 53 DNS records
+- Create and configure security groups
+- Manage network interfaces
 
-Place `chainsaw.sh` in your PATH, and then run:
+Required IAM permissions:
+```json
+{
+    "Version": "2012-10-17",
+    "Statement": [
+        {
+            "Effect": "Allow",
+            "Action": [
+                "ec2:*",
+                "route53:*",
+                "elasticloadbalancing:*",
+                "iam:CreateServiceLinkedRole"
+            ],
+            "Resource": "*"
+        }
+    ]
+}
 ```
-chainsaw.sh my-github-org my-awesome-chain
-cd my-awesome-chain
+
+### Infrastructure Requirements
+- Validator nodes: t3.medium (2 vCPU, 4 GB RAM)
+- Seed nodes: t3.small (2 vCPU, 2 GB RAM)
+- Explorer node: t3.medium (2 vCPU, 4 GB RAM)
+- Load balancers: Application Load Balancer (ALB)
+
+### Estimated Costs (US East Region)
+Monthly cost estimates for a typical setup (3 validators, 1 seed node):
+- EC2 instances: ~$70-90/month
+- Load balancers: ~$20/month
+- Route 53: ~$0.50/month per hosted zone
+- Data transfer: Varies based on usage (~$10-30/month)
+Total estimated cost: $100-140/month
+
+## Quick Start
+
+### 1. Generate Your Chain
+
+Add `chainsaw.sh` to your PATH and run:
+```bash
+chainsaw.sh <github-org> <chain-name>
+cd <chain-name>
 ```
 
-#### Step 2: Create hosted domain zone
-
-1. Choose a subdomain under your domain name to act as the root of the server urls for your new blockchain. Example: If you own foo.com, you could choose "my-awesome-chain.foo.com". Your servers will then given domains such as `valiator-0.testnet.my-awesome-chain.foo.com` or `valiator-0.mainnet.my-awesome-chain.foo.com`.
-
-2. Create a DNS zone for this full domain by running the create-zone.sh command: from the project root dir, run:
-
-```
-deploy/create-zone.sh testnet my-awesome-chain.foo.com myemail@bigcorp.com
+Example:
+```bash
+chainsaw.sh myorg awesome-chain
+cd awesome-chain
 ```
 
-3. Visit the DNS manager for your domain (eg, foo.com), and create 4 NS records for your chosen subdomain, one for each of the name servers in the output of create-zone.sh above. NOTE: It could take 1-4 hours for these NS records to propate, which you can check with the following command:
+### 2. Set Up DNS Zone
 
+1. Choose a subdomain for your blockchain (e.g., `awesome-chain.yourdomain.com`)
+2. Create the DNS zone:
+   ```bash
+   deploy/create-zone.sh testnet awesome-chain.yourdomain.com your@email.com
+   ```
+3. Add NS records to your domain's DNS settings (provided in the create-zone.sh output)
+4. Verify DNS propagation (may take 1-4 hours):
+   ```bash
+   nslookup -type=ns awesome-chain.yourdomain.com
+   ```
+
+### 3. Deploy Testnet
+
+Deploy your validators and seed nodes:
+```bash
+deploy/create-servers.sh testnet <num-validators> <num-seeds>
 ```
-nslookup -type=ns my-awesome-chain.foo.com
+
+Example for 3 validators and 1 seed node:
+```bash
+deploy/create-servers.sh testnet 3 1
 ```
 
-#### Step 3: Deploy testnet servers
+## Accessing Your Testnet
 
-From your project root dir:
+### Web Interfaces
+- Block Explorer: `https://explorer.testnet.<your-domain>`
+- API Endpoint: `https://seed-0-api.testnet.<your-domain>`
 
-```
-deploy/create-servers.sh testnet 3 1 # number of desired validators and seeds
-```
-
-#### Step 4: Behold your testnet
-
-See your new block explorer: https://explorer.testnet.my-awesome-chain.foo.com
-
-See your api: https://seed-0-api.testnet.my-awesome-chain.foo.com
-
-See your servers in AWS: https://us-west-2.console.aws.amazon.com/ec2/v2/home?region=us-west-2#Instances
-
-See your ip addresses:
-
-```
+### Server Management
+View server details:
+```bash
 terraform -chdir=deploy output
-# => seed_ips = [
-# "44.228.170.68",
-# ]
-# validator_ips = [
-# "35.165.126.194",
-# "52.43.111.204",
-# "54.200.98.222",
-#]
 ```
 
-Log into your servers:
-
-```
-deploy/ssh.sh validator 0
-deploy/ssh.sh validator 1
-deploy/ssh.sh seed 0
+SSH into servers:
+```bash
+deploy/ssh.sh validator <number>  # e.g., deploy/ssh.sh validator 0
+deploy/ssh.sh seed <number>      # e.g., deploy/ssh.sh seed 0
 deploy/ssh.sh explorer 0
 ```
 
-## Destroying your testnet servers (to save money!)
+## Cost Management
 
-From your project root dir:
-
-```
+### Stopping Testnet (Preserve Configuration)
+```bash
 deploy/destroy-servers.sh
 ```
 
-## Destroying everything (including your your DNS zone)
-
-From your project root dir:
-
-```
+### Complete Cleanup (Including DNS)
+```bash
 deploy/destroy-all.sh
 ```
 
-## Possible Enhancements
+## Architecture
 
-- Deploy to a mainnet with anti-DDOS and other security-related features
-- Support other cloud providers (Linode, Digital Ocean, etc.)
+The deployment creates:
+- Validator nodes: Process transactions and maintain consensus
+- Seed nodes: Handle P2P networking and API requests
+- Explorer node: Runs a block explorer web interface
+- Load balancers: Distribute API traffic
+- Security groups: Manage network access
+- DNS records: Provide easy access to network services
 
+### Infrastructure Best Practices
 
-prep:
+#### AWS Configuration
+1. **VPC and Networking**:
+   - Use private subnets for validators
+   - Enable VPC Flow Logs for network monitoring
+   - Configure AWS WAF on ALB for DDoS protection
+   - Enable GuardDuty for threat detection
 
-brew install awscli terraform
-aws configure
-terraform init
+2. **Security**:
+   - Use AWS KMS for key management
+   - Enable EBS encryption by default
+   - Use Systems Manager Session Manager instead of direct SSH
+   - Enable AWS Config for compliance monitoring
+
+3. **Monitoring**:
+   - Set up CloudWatch Log Groups with retention policies
+   - Configure CloudWatch Alarms for metrics
+   - Enable AWS CloudTrail with log file validation
+   - Use X-Ray for request tracing
+
+#### Terraform State Management
+1. **Remote State**:
+   ```hcl
+   # backend.hcl
+   bucket         = "your-terraform-state-bucket"
+   region         = "us-east-1"
+   dynamodb_table = "terraform-lock"
+   encrypt        = true
+   ```
+
+2. **Workspace Usage**:
+   ```bash
+   # Create and use environments
+   terraform workspace new staging
+   terraform workspace new production
+   ```
+
+### Chain Management
+
+#### Validator Setup
+1. **Key Management**:
+   - Use AWS Secrets Manager for validator keys
+   - Implement key rotation procedures
+   - Configure HSM for production deployments
+
+2. **Monitoring**:
+   - Set up Prometheus and Grafana
+   - Configure alerting for:
+     - Block production delays
+     - Validator disconnections
+     - Consensus failures
+     - Resource utilization
+
+3. **Backup Procedures**:
+   ```bash
+   # Automated daily backups
+   aws backup start-backup-job --backup-vault-name chain-backup \
+     --resource-arn arn:aws:ec2:region:account-id:instance/instance-id
+   ```
+
+#### Chain Upgrades
+1. **Preparation**:
+   - Test upgrades on staging environment
+   - Take snapshots of validator state
+   - Notify stakeholders of upgrade schedule
+
+2. **Execution**:
+   ```bash
+   # Upgrade procedure
+   deploy/upgrade.sh <new-version> --height <block-height>
+   ```
+
+3. **Verification**:
+   - Monitor upgrade progress
+   - Verify chain continuity
+   - Check validator participation
+
+### Security Best Practices
+
+1. **Access Control**:
+   - Use AWS IAM roles with least privilege
+   - Implement MFA for AWS console access
+   - Regular rotation of access keys
+
+2. **Network Security**:
+   - Implement network segmentation
+   - Use security groups with minimal access
+   - Enable AWS Shield for DDoS protection
+
+3. **Monitoring and Compliance**:
+   - Regular security audits
+   - Automated compliance checks
+   - Incident response procedures
+
+## Future Enhancements
+
+- [ ] Mainnet deployment with enhanced security features
+- [ ] Multi-cloud provider support (Linode, Digital Ocean)
+- [ ] Automated backup and recovery
+- [ ] Monitoring and alerting integration
+- [ ] Governance parameter configuration
+- [ ] Automated security patching
+
+## Troubleshooting
+
+### Common Issues
+
+1. DNS propagation delays
+   - Solution: Wait 1-4 hours and verify with `nslookup`
+   
+2. AWS permission errors
+   - Solution: Verify AWS CLI configuration and IAM permissions
+
+3. Terraform state issues
+   - Solution: Check `terraform.tfstate` file and run `terraform init`
+
+## Contributing
+
+Contributions are welcome! Please feel free to submit issues and pull requests.
+
+## License
+
+This project is open source. See LICENSE file for details.

@@ -1,91 +1,84 @@
 variable "aws_region" {
-  description = "AWS region"
-  default     = "us-west-2"
+  description = "The AWS region to deploy primary resources"
   type        = string
+  default     = "us-east-1"
+
+  validation {
+    condition     = can(regex("^[a-z]{2}-[a-z]+-\\d{1}$", var.aws_region))
+    error_message = "AWS region must be a valid region name, e.g., us-east-1"
+  }
+}
+
+variable "dr_region" {
+  description = "The AWS region for disaster recovery"
+  type        = string
+  default     = "us-west-2"
+
+  validation {
+    condition     = can(regex("^[a-z]{2}-[a-z]+-\\d{1}$", var.dr_region))
+    error_message = "DR region must be a valid region name, e.g., us-west-2"
+  }
 }
 
 variable "aws_profile" {
-  description = "AWS profile"
+  description = "AWS CLI profile to use"
   type        = string
+  default     = "default"
 }
-variable "env" {
-  description = "The env - either 'testnet' or 'mainnet' -- used as suffix of resource names"
+
+variable "environment" {
+  description = "Environment name (e.g., staging, production)"
   type        = string
+  default     = "staging"
+
+  validation {
+    condition     = contains(["staging", "production"], var.environment)
+    error_message = "Environment must be either 'staging' or 'production'"
+  }
 }
 
-variable "project" {
-  description = "The name of this project -- used as prefix of resource names"
-  default     = "newchain"
+variable "chain_name" {
+  description = "Name of the blockchain"
   type        = string
+
+  validation {
+    condition     = can(regex("^[a-z][a-z0-9-]*$", var.chain_name))
+    error_message = "Chain name must start with a letter and contain only lowercase letters, numbers, and hyphens"
+  }
 }
 
-variable "ssh_private_key_path" {
-  description = "path to private SSH key file"
-  default     = "~/.ssh/id_rsa.old"
-  type        = string
+variable "instance_types" {
+  description = "Map of instance types for different node roles"
+  type = object({
+    validator = string
+    seed      = string
+    explorer  = string
+  })
+  default = {
+    validator = "t3.medium"
+    seed      = "t3.small"
+    explorer  = "t3.medium"
+  }
+
+  validation {
+    condition     = can([for type in values(var.instance_types) : regex("^[a-z][0-9][.][a-z]+$", type)])
+    error_message = "Instance types must be valid AWS instance type names"
+  }
 }
 
-variable "ssh_public_key_path" {
-  description = "path to public SSH key file"
-  default     = "~/.ssh/id_rsa.old.pub"
-  type        = string
-}
-
-variable "tls_certificate_email" {
-  description = "email to send to letsencrypt for tls certificates"
-  default     = ""
-}
-
-variable "vpc_cidr" {
-  description = "CIDR block of the vpc"
-  default     = "10.0.0.0/16"
-}
-
-variable "seed_subnet_cidr" {
-  description = "CIDR block for seed subnet"
-  default     = "10.0.1.0/24"
-}
-
-variable "validator_subnet_cidr" {
-  description = "CIDR block for validator subnet"
-  default     = "10.0.2.0/24"
-}
-
-variable "explorer_subnet_cidr" {
-  description = "CIDR block for explorer subnet"
-  default     = "10.0.3.0/24"
-}
-
-variable "num_validator_instances" {
-  description = "number of validator instances"
-  type        = number
-  default     = 0
-}
-
-variable "num_seed_instances" {
-  description = "number of seed instances"
-  type        = number
-  default     = 0
-}
-
-variable "create_explorer" {
-  description = "whether to include an explorere node"
+variable "enable_monitoring" {
+  description = "Enable enhanced monitoring and alerting"
   type        = bool
-  default     = false
+  default     = true
 }
 
-variable "dns_zone_parent" {
-  description = "parent of dns zone for testnet and mainnet servers, eg: mychain.example.com"
-}
+variable "backup_retention_days" {
+  description = "Number of days to retain backups"
+  type        = number
+  default     = 30
 
-variable "validator_keys_passphrase" {
-  description = "passphrase for validator keys"
-}
-
-variable "console_password" {
-  description = "password for the user 'ubuntu'"
-}
-
-variable "token_name" {
-  description = "name of the blockhain's token, eg MYTOKEN"
+  validation {
+    condition     = var.backup_retention_days >= 7 && var.backup_retention_days <= 365
+    error_message = "Backup retention must be between 7 and 365 days"
+  }
 }

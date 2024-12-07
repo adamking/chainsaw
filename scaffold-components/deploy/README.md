@@ -1,107 +1,204 @@
 # Deploying a testnet
 
-## Step 1: Install dependencies
+This guide walks you through deploying your newchain testnet to AWS infrastructure.
 
-```
+## Prerequisites
+
+### Required Software
+```bash
 brew install jq terraform awscli
 ```
 
-## Step 2: Set up name servers
+### AWS Configuration
+1. Configure AWS CLI with appropriate credentials:
+   ```bash
+   aws configure
+   ```
+2. Ensure your AWS account has permissions for:
+   - EC2 instance management
+   - Route 53 DNS configuration
+   - Security group creation
+   - Load balancer setup
+   - Key pair management
 
-From the project root dir:
+## Deployment Steps
 
-```
-deploy/create-zone.sh testnet yourchain.yourdomain.com youremail@example.com
+### 1. DNS Configuration
+
+From your project root directory:
+
+```bash
+deploy/create-zone.sh testnet newchain.yourdomain.com your@email.com
 ```
 
-This command will output a list of name servers. At the host for the subdomain (eg, `yourchain.yourdomain.com`), add one NS record for each name server in the output. Wait for the NS records to be propagated (this can take anywhere from 15 minutes to 8 hours). You can confirm the name server records are propagated by running the command 
+This command:
+- Creates a Route 53 hosted zone
+- Configures DNS settings
+- Sets up SSL certificates
+- Outputs nameserver information
+
+#### Configuring Nameservers
+
+1. Copy the nameservers from the command output
+2. Add NS records to your domain registrar:
+   - One record for each nameserver provided
+   - Point them to `newchain.yourdomain.com`
+
+#### Verify DNS Propagation
+
+```bash
+nslookup -type=ns newchain.yourdomain.com
 ```
-nslookup -type=ns testnet.yourchain.yourdomain.com
-```
-At first you will see a failure message such as `** server can't find testnet.yourchain.yourdomain.com: NXDOMAIN`. If you see a response similar to the following, then the name servers are propagated:
+
+Expected successful response:
 ```
 Server:         10.136.126.106
 Address:        10.136.126.106#53
 
 Non-authoritative answer:
-testnet.yourchain.yourdomain.com    nameserver = ns-1306.awsdns-35.org.
-testnet.yourchain.yourdomain.com    nameserver = ns-143.awsdns-17.com.
-testnet.yourchain.yourdomain.com    nameserver = ns-800.awsdns-36.net.
-testnet.yourchain.yourdomain.com    nameserver = ns-1694.awsdns-19.co.uk.
-
-Authoritative answers can be found from:
-ns-143.awsdns-17.com    internet address = 205.251.192.143
-ns-800.awsdns-36.net    internet address = 205.251.195.32
-ns-1306.awsdns-35.org   internet address = 205.251.197.26
-ns-1694.awsdns-19.co.uk internet address = 205.251.198.158
-ns-143.awsdns-17.com    has AAAA address 2600:9000:5300:8f00::1
-ns-800.awsdns-36.net    has AAAA address 2600:9000:5303:2000::1
-ns-1306.awsdns-35.org   has AAAA address 2600:9000:5305:1a00::1
+newchain.yourdomain.com    nameserver = ns-1306.awsdns-35.org.
+newchain.yourdomain.com    nameserver = ns-143.awsdns-17.com.
+newchain.yourdomain.com    nameserver = ns-800.awsdns-36.net.
+newchain.yourdomain.com    nameserver = ns-1694.awsdns-19.co.uk.
 ```
 
-## Step 3: Deploy your chain
+Note: DNS propagation can take 15 minutes to 8 hours.
 
-From the project root dir:
+### 2. Deploy Chain Infrastructure
 
-```
-deploy/create-servers.sh testnet yourchain.yourdomain.com youremail@example.com
-```
+Deploy your validator and seed nodes:
 
-#### Step 4: Behold your testnet
-
-Wait 2-3 minutes, the visit your new api:
-
-```
-open https://validator-0-api.yourchain.yourdomain.com
+```bash
+deploy/create-servers.sh testnet 3 1  # 3 validators, 1 seed node
 ```
 
-See your servers in AWS:
+This command:
+- Launches EC2 instances
+- Configures security groups
+- Sets up load balancers
+- Initializes blockchain nodes
+- Configures monitoring
 
-```
+### 3. Access Your Network
+
+#### Web Interfaces
+
+After 2-3 minutes, your services will be available:
+
+- Block Explorer: `https://explorer.testnet.newchain.yourdomain.com`
+- API Endpoint: `https://seed-0-api.testnet.newchain.yourdomain.com`
+- RPC Endpoint: `https://seed-0-rpc.testnet.newchain.yourdomain.com`
+
+#### Infrastructure Management
+
+View AWS Resources:
+```bash
 open https://us-west-2.console.aws.amazon.com/ec2/v2/home?region=us-west-2#Instances:
 ```
 
-See your ip addresses:
-
-```
+Display Node Information:
+```bash
+# View all node IPs
 terraform -chdir=deploy output
-# => seed_ips = [
-#   "44.228.170.68",
-# ]
-# validator_ips = [
-#   "35.165.126.194",
-#   "52.43.111.204",
-#   "54.200.98.222",
-#]
-```
 
-Use some nifty commands in your scripts:
-
-```
+# Get specific node IP
 deploy/show-ip.sh seed 0
-# => 44.228.170.68
 deploy/show-ip.sh validator 0
-# => 35.165.126.194
+
+# Get API endpoints
 deploy/show-api.sh validator 0
-# => http://35.165.126.194:1317
+```
+
+#### SSH Access
+
+Connect to nodes:
+```bash
+# Interactive SSH session
 deploy/ssh.sh validator 0
-# => ubuntu@ip-10-0-2-45:~$
-deploy/ssh validator 0 date
-# => Tue May 31 02:23:06 UTC 2022
+deploy/ssh.sh seed 0
+
+# Run command directly
+deploy/ssh.sh validator 0 "date"
 ```
 
-## Destroying your testnet (to save money!)
+## Maintenance
 
-From your project root dir:
-
+### Backup Keys
+```bash
+deploy/backup-keys.sh
 ```
+
+### Monitor Nodes
+- Check node status: `curl https://seed-0-api.testnet.newchain.yourdomain.com/status`
+- Monitor logs: `deploy/ssh.sh validator 0 "journalctl -u newchain -f"`
+- Check sync: `deploy/ssh.sh validator 0 "newchaind status"`
+
+## Cost Management
+
+### Stopping Testnet (Preserve Configuration)
+
+To stop incurring charges while preserving configuration:
+```bash
 deploy/destroy-servers.sh testnet
 ```
 
-## Destroying your zone and any remaining servers
+This maintains:
+- DNS configuration
+- Terraform state
+- Network setup
 
-There may be a small monthly charge from some AWS resources such as hosting your dns zone or other items. To remove all of these resources, cd to project root dir and run:
+### Complete Cleanup
 
-```
+To remove all AWS resources including DNS zones:
+```bash
 deploy/destroy-all.sh testnet
 ```
+
+Warning: This is irreversible and removes:
+- All EC2 instances
+- Load balancers
+- DNS zones
+- Security groups
+- Network interfaces
+
+## Troubleshooting
+
+### Common Issues
+
+1. DNS not propagating
+   - Verify NS records are correct
+   - Wait at least 15 minutes
+   - Check with different DNS servers
+
+2. Node connection issues
+   - Verify security group rules
+   - Check instance status
+   - Validate network configuration
+
+3. API endpoints unreachable
+   - Ensure load balancers are healthy
+   - Verify SSL certificate status
+   - Check node service status
+
+### Useful Commands
+
+```bash
+# Check node logs
+deploy/ssh.sh validator 0 "journalctl -u newchain -f"
+
+# Verify node status
+deploy/ssh.sh validator 0 "newchaind status"
+
+# Check API health
+curl -k https://seed-0-api.testnet.newchain.yourdomain.com/node_info
+```
+
+## Security Considerations
+
+- Regularly rotate SSH keys
+- Monitor AWS CloudWatch logs
+- Keep node software updated
+- Backup validator keys securely
+- Use strong firewall rules
+- Enable AWS CloudTrail
+- Monitor resource usage

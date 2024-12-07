@@ -1,7 +1,11 @@
+variable "availability_zone" {
+  description = "Availability zone for the explorer subnet"
+}
+
 resource "aws_subnet" "explorer" {
   vpc_id            = var.vpc_id
   cidr_block        = var.subnet_cidr
-  availability_zone = "us-west-2a"
+  availability_zone = var.availability_zone
 
   tags = {
     Environment = var.env
@@ -12,6 +16,7 @@ resource "aws_subnet" "explorer" {
 
 resource "aws_route_table" "explorer" {
   vpc_id = var.vpc_id
+
   route {
     cidr_block = "0.0.0.0/0"
     gateway_id = var.igw_id
@@ -31,7 +36,7 @@ resource "aws_route_table_association" "explorer" {
 
 resource "aws_security_group" "explorer" {
   name        = "${var.env}-explorer-sg"
-  description = "SG to alllow traffic from the explorer clients"
+  description = "Security group for the explorer node"
   vpc_id      = var.vpc_id
 
   egress {
@@ -43,8 +48,8 @@ resource "aws_security_group" "explorer" {
   }
 
   ingress {
-    from_port   = 22
-    to_port     = 22
+    from_port   = 443
+    to_port     = 443
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
@@ -52,13 +57,6 @@ resource "aws_security_group" "explorer" {
   ingress {
     from_port   = 80
     to_port     = 80
-    protocol    = "tcp"
-    cidr_blocks = ["0.0.0.0/0"]
-  }
-
-  ingress {
-    from_port   = 443
-    to_port     = 443
     protocol    = "tcp"
     cidr_blocks = ["0.0.0.0/0"]
   }
