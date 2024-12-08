@@ -12,9 +12,9 @@ if [[ (! $ENV =~ ^mainnet|testnet$) || "$NUM_VALIDATORS" = "" ]]; then
     exit 1
 fi
 
-mkdir -p ~/communio-keys-backup
+mkdir -p ~/newchain-keys-backup
 NUM_VALIDATORS_MINUS_1=$(($NUM_VALIDATORS - 1))
 for i in $(seq 0 $NUM_VALIDATORS_MINUS_1);
 do
-    scp ubuntu@$(deploy/show-ip.sh validator $i):.communio/config/keys-backup/\*.txt ~/communio-keys-backup/
+    scp ubuntu@$(deploy/show-ip.sh validator $i):.newchain/config/keys-backup/\*.txt ~/newchain-keys-backup/
 done

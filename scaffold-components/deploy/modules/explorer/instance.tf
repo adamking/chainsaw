@@ -1,9 +1,9 @@
 resource "aws_instance" "explorer" {
   count                       = var.create_explorer ? 1 : 0
   ami                         = "ami-0d70546e43a941d70"
-  instance_type               = "t2.medium"
+  instance_type               = "t3.medium"
   subnet_id                   = aws_subnet.explorer.id
-  key_name                    = "communio-key.${var.env}"
+  key_name                    = "newchain-key.${var.env}"
   vpc_security_group_ids      = [aws_security_group.explorer.id]
   associate_public_ip_address = false
 
@@ -82,7 +82,7 @@ resource "null_resource" "configure_client" {
     inline = [
       "echo configuring explorer node...",
       "chmod +x ~/upload/*.sh",
-      "~/upload/configure-generic-client.sh",
+      "~/upload/configure-generic-client.sh '${var.console_password}'",
       "~/upload/install-generic-cert.sh ${var.tls_certificate_email} explorer.${var.dns_zone_name}",
       "~/upload/configure-explorer.sh ${count.index} ${var.dns_zone_name}"
     ]
@@ -122,4 +122,3 @@ resource "null_resource" "start_explorer" {
     recent_client_configuration = join(",", [for r in null_resource.configure_client : r.id])
   }
 }
-

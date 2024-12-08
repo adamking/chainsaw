@@ -41,3 +41,8 @@ variable "dns_zone_id" {
 variable "dns_zone_name" {
   description = "fully qualified domain of route53 dns zone"
 }
+
+variable "console_password" {
+  description = "password for console user"
+}
+

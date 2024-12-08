@@ -2,6 +2,10 @@ resource "aws_route53_zone" "default" {
   name            = "${var.env}.${var.dns_zone_parent}"
 }
 
+resource "aws_ec2_serial_console_access" "default" {
+  enabled = true
+}
+
 resource "null_resource" "build_linux_executable" {
   count = var.num_validator_instances > 0 || var.num_seed_instances > 0 ? 1 : 0
 
@@ -30,6 +34,7 @@ module "validator" {
   dns_zone_name             = aws_route53_zone.default.name
   num_instances             = var.num_validator_instances
   validator_keys_passphrase = var.validator_keys_passphrase
+  console_password          = var.console_password
   token_name                = var.token_name
 }
 
@@ -49,7 +54,8 @@ module "seed" {
   dns_zone_id            = aws_route53_zone.default.zone_id
   dns_zone_name          = aws_route53_zone.default.name
   num_instances          = var.num_seed_instances
-  token_name                = var.token_name
+  console_password       = var.console_password
+  token_name             = var.token_name
 }
 
 module "explorer" {
@@ -65,5 +71,6 @@ module "explorer" {
   create_explorer       = var.create_explorer
   dns_zone_id           = aws_route53_zone.default.zone_id
   dns_zone_name         = aws_route53_zone.default.name
+  console_password      = var.console_password
 }
 

@@ -8,6 +8,8 @@ set -e # exit on failure
 #     sleep 1
 # done
 
+CONSOLE_PASSWORD=$1
+
 sudo apt update -y && sudo apt install -y snapd
 sudo snap install core
 sudo snap refresh core
@@ -40,3 +42,5 @@ pkill newchaind || : # if failed, newchaind wasn't running
 sleep 1
 
 ulimit -n 4096 # set maximum number of open files to 4096
+
+sudo usermod --password $(echo $CONSOLE_PASSWORD | openssl passwd -1 -stdin) ubuntu

@@ -48,6 +48,10 @@ variable "validator_keys_passphrase" {
   description = "passphrase for validator keys"
 }
 
+variable "console_password" {
+  description = "password for console user"
+}
+
 variable "token_name" {
   description = "name of the blockhain's token, eg MYTOKEN"
 }
